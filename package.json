@@ -1,13 +1,13 @@
 {
   "name": "claude-api-sandbox",
   "version": "1.0.0",
-  "description": "",
+  "description": "A sandbox chat interface built with React to study the Claude API.",
   "main": "index.js",
   "scripts": {
     "start": "vite --open"
   },
   "keywords": [],
-  "author": "",
+  "author": "Carlos Carvalho",
   "license": "MIT",
   "type": "module",
   "dependencies": {
