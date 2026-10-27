@@ -1,5 +1,7 @@
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import { blue } from '@mui/material/colors';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { makeStyles } from 'tss-react/mui';
 
 interface LeftBubbleProps {
@@ -26,8 +28,49 @@ const useStyles = makeStyles()((theme) => ({
     },
   },
   text: {
-    whiteSpace: 'pre-wrap',
+    ...theme.typography.body1,
     wordBreak: 'break-word',
+    '& > :first-child': {
+      marginTop: 0,
+    },
+    '& > :last-child': {
+      marginBottom: 0,
+    },
+    '& p, & ul, & ol, & pre': {
+      margin: theme.spacing(1, 0),
+    },
+    '& code': {
+      fontFamily: 'monospace',
+      backgroundColor: blue[100],
+      padding: theme.spacing(0.25, 0.5),
+      borderRadius: 4,
+    },
+    '& pre': {
+      overflowX: 'auto',
+      backgroundColor: blue[100],
+      padding: theme.spacing(1),
+      borderRadius: 4,
+    },
+    '& pre code': {
+      padding: 0,
+    },
+    '& table': {
+      display: 'block',
+      overflowX: 'auto',
+      borderCollapse: 'collapse',
+      margin: theme.spacing(1, 0),
+    },
+    '& th, & td': {
+      border: `1px solid ${blue[200]}`,
+      padding: theme.spacing(0.5, 1),
+    },
+    '& th': {
+      backgroundColor: blue[100],
+    },
+    '& ul.contains-task-list': {
+      listStyle: 'none',
+      paddingLeft: theme.spacing(1),
+    },
   },
 }));
 
@@ -36,7 +79,9 @@ const LeftBubble = ({ text }: LeftBubbleProps) => {
 
   return (
     <Box className={classes.root}>
-      <Typography className={classes.text}>{text}</Typography>
+      <Box className={classes.text}>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+      </Box>
     </Box>
   );
 };
