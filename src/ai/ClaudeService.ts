@@ -14,6 +14,7 @@ export class ClaudeService {
     
     // Optional params;
     private systemAgent: string | null;
+    private structuredOutput: { [key: string]: unknown } | null;
 
     constructor() {
         this.client = new Anthropic({
@@ -25,11 +26,17 @@ export class ClaudeService {
         this.model = import.meta.env.VITE_CLAUDE_MODEL;
         this.maxTokens = Number(import.meta.env.VITE_CLAUDE_MAX_TOKENS);
         this.messages = [];
+
         this.systemAgent = null;
+        this.structuredOutput = null;
     };
 
     setSystemAgent = (_systemAgent: string) => {
         this.systemAgent = _systemAgent;
+    };
+
+    setStructuredOutput = (_structuredOutput: string) => {
+        this.structuredOutput = _structuredOutput ? JSON.parse(_structuredOutput) : null;
     };
 
     stackMessage = (_role: 'user' | 'assistant', _message: string) => {
@@ -37,10 +44,10 @@ export class ClaudeService {
             role: _role,
             content: _message,
         });
-    }
+    };
 
-    buildMessageParams = (): any => {
-        const params: any = {
+    buildMessageParams = (): Anthropic.Messages.MessageCreateParamsNonStreaming => {
+        const params: Anthropic.Messages.MessageCreateParamsNonStreaming = {
             model: this.model,
             max_tokens: this.maxTokens,
             messages: this.messages,
@@ -48,6 +55,15 @@ export class ClaudeService {
 
         if (this.systemAgent) {
             params.system = this.systemAgent;
+        }
+
+        if (this.structuredOutput) {
+            params.output_config = {
+                format: {
+                    type: 'json_schema',
+                    schema: this.structuredOutput,
+                },
+            };
         }
 
         return params;
