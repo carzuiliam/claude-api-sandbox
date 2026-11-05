@@ -6,7 +6,17 @@ import { makeStyles } from 'tss-react/mui';
 
 interface LeftBubbleProps {
   text: string;
+  json?: boolean;
 }
+
+// While streaming the JSON is incomplete and won't parse, so fall back to the raw text.
+const formatJson = (text: string) => {
+  try {
+    return JSON.stringify(JSON.parse(text), null, 2);
+  } catch {
+    return text;
+  }
+};
 
 const useStyles = makeStyles()((theme) => ({
   root: {
@@ -74,13 +84,17 @@ const useStyles = makeStyles()((theme) => ({
   },
 }));
 
-const LeftBubble = ({ text }: LeftBubbleProps) => {
+const LeftBubble = ({ text, json = false }: LeftBubbleProps) => {
   const { classes } = useStyles();
 
   return (
     <Box className={classes.root}>
       <Box className={classes.text}>
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+        {json ? (
+          <pre><code>{formatJson(text)}</code></pre>
+        ) : (
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+        )}
       </Box>
     </Box>
   );
