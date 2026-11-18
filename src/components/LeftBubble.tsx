@@ -1,12 +1,14 @@
-import { Box } from '@mui/material';
+import { Box, SvgIcon, Tooltip } from '@mui/material';
 import { blue } from '@mui/material/colors';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { makeStyles } from 'tss-react/mui';
+import type { CSSObject } from 'tss-react';
 
 interface LeftBubbleProps {
   text: string;
   json?: boolean;
+  toolUsed?: boolean;
 }
 
 // While streaming the JSON is incomplete and won't parse, so fall back to the raw text.
@@ -17,6 +19,12 @@ const formatJson = (text: string) => {
     return text;
   }
 };
+
+const ToolUsedIcon = () => (
+  <SvgIcon fontSize="small" color="warning">
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 15h-2v-2h2zm0-4h-2V7h2z" />
+  </SvgIcon>
+);
 
 const useStyles = makeStyles()((theme) => ({
   root: {
@@ -37,8 +45,14 @@ const useStyles = makeStyles()((theme) => ({
       borderLeft: '10px solid transparent',
     },
   },
+  toolUsed: {
+    position: 'absolute',
+    top: -5,
+    right: -10,
+    display: 'flex',
+  },
   text: {
-    ...theme.typography.body1,
+    ...(theme.typography.body1 as CSSObject),
     wordBreak: 'break-word',
     '& > :first-child': {
       marginTop: 0,
@@ -84,7 +98,7 @@ const useStyles = makeStyles()((theme) => ({
   },
 }));
 
-const LeftBubble = ({ text, json = false }: LeftBubbleProps) => {
+const LeftBubble = ({ text, json = false, toolUsed = false }: LeftBubbleProps) => {
   const { classes } = useStyles();
 
   return (
@@ -96,6 +110,13 @@ const LeftBubble = ({ text, json = false }: LeftBubbleProps) => {
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
         )}
       </Box>
+      {toolUsed && (
+        <Tooltip title="Tool used here!">
+          <Box className={classes.toolUsed}>
+            <ToolUsedIcon />
+          </Box>
+        </Tooltip>
+      )}
     </Box>
   );
 };

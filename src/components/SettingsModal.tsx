@@ -5,22 +5,24 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
   FormControlLabel,
+  FormLabel,
   MenuItem,
   TextField,
 } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
-import { agents, schemas } from '../resources';
+import { agents } from '../resources';
 
 interface SettingsModalProps {
   open: boolean;
   streaming: boolean;
   agentName: string;
-  schemaName: string;
+  useAgentSchema: boolean;
   onClose: () => void;
   onStreamingChange: (streaming: boolean) => void;
   onAgentNameChange: (agentName: string) => void;
-  onSchemaNameChange: (schemaName: string) => void;
+  onUseAgentSchemaChange: (useAgentSchema: boolean) => void;
 }
 
 const useStyles = makeStyles()((theme) => ({
@@ -29,6 +31,18 @@ const useStyles = makeStyles()((theme) => ({
     flexDirection: 'column',
     gap: theme.spacing(3),
     paddingTop: `${theme.spacing(1)} !important`,
+  },
+  group: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(2),
+    padding: theme.spacing(1, 2, 2),
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: theme.shape.borderRadius,
+  },
+  legend: {
+    padding: theme.spacing(0, 0.5),
+    fontSize: theme.typography.body2.fontSize,
   },
 }));
 
@@ -62,11 +76,11 @@ const SettingsModal = ({
   open,
   streaming,
   agentName,
-  schemaName,
+  useAgentSchema,
   onClose,
   onStreamingChange,
   onAgentNameChange,
-  onSchemaNameChange,
+  onUseAgentSchemaChange,
 }: SettingsModalProps) => {
   const { classes } = useStyles();
 
@@ -75,7 +89,7 @@ const SettingsModal = ({
     onAgentNameChange(value);
 
     if (!value) {
-      onSchemaNameChange('');
+      onUseAgentSchemaChange(false);
     }
   };
 
@@ -83,28 +97,37 @@ const SettingsModal = ({
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
       <DialogTitle>Settings</DialogTitle>
       <DialogContent className={classes.content}>
-        <FormControlLabel
-          label="Enable Streaming"
-          control={
-            <Checkbox
-              checked={streaming}
-              onChange={(event) => onStreamingChange(event.target.checked)}
-            />
-          }
-        />
-        <ResourceSelect
-          label="Use Agent"
-          value={agentName}
-          options={Object.keys(agents)}
-          onChange={handleAgentNameChange}
-        />
-        <ResourceSelect
-          label="Use Schema"
-          value={schemaName}
-          options={Object.keys(schemas)}
-          disabled={!agentName}
-          onChange={onSchemaNameChange}
-        />
+        <FormControl component="fieldset" className={classes.group}>
+          <FormLabel component="legend" className={classes.legend}>Streaming</FormLabel>
+          <FormControlLabel
+            label="Enable Streaming"
+            control={
+              <Checkbox
+                checked={streaming}
+                onChange={(event) => onStreamingChange(event.target.checked)}
+              />
+            }
+          />
+        </FormControl>
+        <FormControl component="fieldset" className={classes.group}>
+          <FormLabel component="legend" className={classes.legend}>Agent</FormLabel>
+          <ResourceSelect
+            label="Use Agent"
+            value={agentName}
+            options={Object.keys(agents)}
+            onChange={handleAgentNameChange}
+          />
+          <FormControlLabel
+            label="Use Agent Schema"
+            disabled={!agentName}
+            control={
+              <Checkbox
+                checked={useAgentSchema}
+                onChange={(event) => onUseAgentSchemaChange(event.target.checked)}
+              />
+            }
+          />
+        </FormControl>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Close</Button>

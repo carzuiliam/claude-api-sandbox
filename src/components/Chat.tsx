@@ -63,7 +63,7 @@ const Chat = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [agentName, setAgentName] = useState('');
-  const [schemaName, setSchemaName] = useState('');
+  const [useAgentSchema, setUseAgentSchema] = useState(false);
   const [claudeService] = useState(() => new ClaudeService());
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -89,14 +89,18 @@ const Chat = () => {
     setLoading(true);
 
     try {
-      const json = Boolean(schemaName);
+      const json = useAgentSchema && agentName in schemas;
 
       claudeService.setSystemAgent(agentName ? agents[agentName].trim() : '');
-      claudeService.setStructuredOutput(json ? schemas[schemaName].trim() : '');
+      claudeService.setStructuredOutput(json ? schemas[agentName].trim() : '');
 
       if (streaming) {
         setMessages((previous) => [...previous, { role: 'assistant', content: '', json }]);
         await claudeService.sendMessageStream(text, appendToLastMessage);
+
+        const toolUsed = claudeService.isToolUsedInLastTurn();
+
+        setMessages((previous) => [...previous.slice(0, -1), { ...previous[previous.length - 1], toolUsed }]);
       } else {
         await claudeService.sendMessage(text);
 
@@ -136,7 +140,7 @@ const Chat = () => {
             <ErrorBubble key={index} text={message.content} /> :
           message.role === 'user' ?
             <RightBubble key={index} text={message.content} /> :
-            <LeftBubble key={index} text={message.content} json={message.json} />
+            <LeftBubble key={index} text={message.content} json={message.json} toolUsed={message.toolUsed} />
         ))}
       </Box>
       <Box className={classes.inputRow}>
@@ -163,11 +167,11 @@ const Chat = () => {
         open={settingsOpen}
         streaming={streaming}
         agentName={agentName}
-        schemaName={schemaName}
+        useAgentSchema={useAgentSchema}
         onClose={() => setSettingsOpen(false)}
         onStreamingChange={setStreaming}
         onAgentNameChange={setAgentName}
-        onSchemaNameChange={setSchemaName}
+        onUseAgentSchemaChange={setUseAgentSchema}
       />
     </Box>
   );

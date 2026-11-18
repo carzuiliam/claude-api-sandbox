@@ -1,0 +1,27 @@
+[
+  {
+    "name": "search_cep",
+    "description": "Looks up a Brazilian postal code (CEP) using the ViaCEP API and returns its address data: street, complement, neighborhood, city, state, region, IBGE code, and area code (DDD). Use it whenever the user asks about the address of a CEP. If the CEP does not exist, the result contains \"erro\": \"true\".",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "cep": {
+          "type": "string",
+          "description": "The CEP to look up, with exactly 8 digits and no separators (e.g., 01001000).",
+          "pattern": "^[0-9]{8}$"
+        }
+      },
+      "required": ["cep"],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "get_local_time",
+    "description": "Returns the user's current local date and time (ISO 8601, without offset), their IANA time zone (e.g., America/Sao_Paulo), and their UTC offset (e.g., -03:00). Use it whenever the answer depends on the user's current date, time, or time zone.",
+    "input_schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  }
+]
