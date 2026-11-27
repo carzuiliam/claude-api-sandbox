@@ -3,8 +3,7 @@ import type { KeyboardEvent } from 'react';
 import { Box, Button, IconButton, SvgIcon, TextField, Tooltip } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
 import Anthropic from '@anthropic-ai/sdk';
-import { ClaudeService } from '../ai/ClaudeService';
-import type { ClaudeMessage } from '../ai/ClaudeService';
+import type { ClaudeMessage, ClaudeService } from '../ai/ClaudeService';
 import { agents, schemas } from '../resources';
 import ErrorBubble from './ErrorBubble';
 import LeftBubble from './LeftBubble';
@@ -58,13 +57,16 @@ const useStyles = makeStyles()((theme) => ({
   },
 }));
 
-const Chat = () => {
+interface ChatProps {
+  claudeService: ClaudeService;
+}
+
+const Chat = ({ claudeService }: ChatProps) => {
   const { classes } = useStyles();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [agentName, setAgentName] = useState('');
   const [useAgentSchema, setUseAgentSchema] = useState(false);
-  const [claudeService] = useState(() => new ClaudeService());
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);

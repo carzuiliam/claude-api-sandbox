@@ -1,5 +1,14 @@
 [
   {
+    "type": "text_editor_20250728",
+    "name": "str_replace_based_edit_tool"
+  },
+  {
+    "type": "web_search_20250305",
+    "name": "web_search",
+    "max_uses": 5
+  },
+  {
     "name": "search_cep",
     "description": "Looks up a Brazilian postal code (CEP) using the ViaCEP API and returns its address data: street, complement, neighborhood, city, state, region, IBGE code, and area code (DDD). Use it whenever the user asks about the address of a CEP. If the CEP does not exist, the result contains \"erro\": \"true\".",
     "input_schema": {

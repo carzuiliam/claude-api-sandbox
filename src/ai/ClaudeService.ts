@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { ToolService } from "./ToolService";
+import { FileService } from "./FileService";
 import toolSchema from "../resources/tools/tool-schema.json?raw";
 
 export interface ClaudeMessage {
@@ -14,7 +15,7 @@ export class ClaudeService {
     private model: string;
     private maxTokens: number;
     private messages: Anthropic.MessageParam[];
-    private tools: Anthropic.Tool[];
+    private tools: Anthropic.ToolUnion[];
     
     // Optional params
     private systemAgent: string | null;
@@ -22,7 +23,10 @@ export class ClaudeService {
 
     // Internal params
     private toolService: ToolService;
+    private fileService: FileService;
+    private listeners: Set<(messages: Anthropic.MessageParam[]) => void> = new Set();
 
+    // Creates the proxied client and loads model settings and tool definitions.
     constructor() {
         this.client = new Anthropic({
             baseURL: `${window.location.origin}/anthropic`,
@@ -39,23 +43,45 @@ export class ClaudeService {
         this.structuredOutput = null;
 
         this.toolService = new ToolService();
+        this.fileService = new FileService();
     };
 
+    // Sets the system prompt sent with every request.
     setSystemAgent = (_systemAgent: string) => {
         this.systemAgent = _systemAgent;
     };
 
+    // Sets the JSON schema for structured output (an empty string clears it).
     setStructuredOutput = (_structuredOutput: string) => {
         this.structuredOutput = _structuredOutput ? JSON.parse(_structuredOutput) : null;
     };
 
+    // Subscribes to history changes; returns a function that unsubscribes.
+    onMessagesChange = (_listener: (messages: Anthropic.MessageParam[]) => void) => {
+        this.listeners.add(_listener);
+        
+        _listener([...this.messages]);
+
+        return () => {
+            this.listeners.delete(_listener);
+        };
+    };
+
+    // Appends a message to the history and notifies the listeners with a copy of it.
+    pushMessage = (_message: Anthropic.MessageParam) => {
+        this.messages.push(_message);
+        this.listeners.forEach((listener) => listener([...this.messages]));
+    };
+
+    // Appends a plain text message to the conversation history.
     stackMessage = (_role: 'user' | 'assistant', _message: string) => {
-        this.messages.push({
+        this.pushMessage({
             role: _role,
             content: _message,
         });
     };
 
+    // Builds the request params from the history, tools, and optional settings.
     buildMessageParams = (): Anthropic.Messages.MessageCreateParamsNonStreaming => {
         const params: Anthropic.Messages.MessageCreateParamsNonStreaming = {
             model: this.model,
@@ -80,6 +106,7 @@ export class ClaudeService {
         return params;
     };
 
+    // Runs one client tool call and wraps its output (or error) as a tool result.
     runTool = async (_block: Anthropic.ToolUseBlock): Promise<Anthropic.ToolResultBlockParam> => {
         try {
             let content: string;
@@ -90,6 +117,9 @@ export class ClaudeService {
                     break;
                 case 'get_local_time':
                     content = this.toolService.getLocalTime();
+                    break;
+                case 'str_replace_based_edit_tool':
+                    content = await this.fileService.runEditorCommand(_block.input);
                     break;
                 default:
                     throw new Error(`Unknown tool: ${_block.name}.`);
@@ -112,8 +142,21 @@ export class ClaudeService {
         }
     };
 
+    // Returns true when the conversation must be sent again (client tool results or a paused server tool turn).
     runTools = async (_message: Anthropic.Message): Promise<boolean> => {
-        this.messages.push({ role: 'assistant', content: _message.content });
+        this.pushMessage({ role: 'assistant', content: _message.content });
+        
+        // Server tool errors (e.g. web search) come back as HTTP 200 with an error object instead of a result list.
+        for (const block of _message.content) {
+            if (block.type === 'web_search_tool_result' && !Array.isArray(block.content)) {
+                console.error(`Web search failed: ${block.content.error_code}.`);
+            }
+        }
+        
+        // Long server tool turns (e.g. several web searches) may pause; resending the conversation resumes them.
+        if (_message.stop_reason === 'pause_turn') {
+            return true;
+        }
 
         if (_message.stop_reason !== 'tool_use') {
             return false;
@@ -122,11 +165,12 @@ export class ClaudeService {
         const toolUses = _message.content.filter((block): block is Anthropic.ToolUseBlock => block.type === 'tool_use');
         const results = await Promise.all(toolUses.map(this.runTool));
 
-        this.messages.push({ role: 'user', content: results });
+        this.pushMessage({ role: 'user', content: results });
 
         return true;
     };
 
+    // Sends a user message and loops until Claude finishes, without streaming.
     sendMessage = async (_message: string) => {
         this.stackMessage('user', _message);
 
@@ -137,6 +181,7 @@ export class ClaudeService {
         } while (await this.runTools(message));
     };
 
+    // Sends a user message and loops until Claude finishes, streaming text to the callback.
     sendMessageStream = async (_message: string, _onText: (text: string) => void) => {
         this.stackMessage('user', _message);
 
@@ -159,7 +204,9 @@ export class ClaudeService {
                 return false;
             }
 
-            if (role === 'assistant' && typeof content !== 'string' && content.some((block) => block.type === 'tool_use')) {
+            if (role === 'assistant' && typeof content !== 'string' &&
+                content.some((block) => block.type === 'tool_use' || block.type === 'server_tool_use')
+            ) {
                 return true;
             }
         }
@@ -167,6 +214,7 @@ export class ClaudeService {
         return false;
     };
 
+    // Returns the last message's text and whether a tool ran in that turn.
     getLastMessage = (): ClaudeMessage | null => {
         const lastMessage = this.messages[this.messages.length - 1];
 

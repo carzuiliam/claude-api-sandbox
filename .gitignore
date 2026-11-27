@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Files created by Claude through the text editor tool
+workspace/
+
 # Build output
 dist/
 
